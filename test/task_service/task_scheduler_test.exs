@@ -1,62 +1,175 @@
 defmodule TaskService.TaskSchedulerTest do
-  use TaskService.DataCase
-
   alias TaskService.TaskScheduler
+  alias TaskService.Task
+  alias TaskService.TaskScheduler.Error
 
-  describe "jobs" do
-    alias TaskService.TaskScheduler.Job
+  use ExUnit.Case
 
-    @valid_attrs %{}
-    @update_attrs %{}
-    @invalid_attrs %{}
+  @simple_input ~S"""
+    {
+    "tasks": [{
+      "name": "task-1",
+      "command": "touch /tmp/file1"
+    }, {
+      "name": "task-2",
+      "command": "cat /tmp/file1",
+      "requires": ["task-3"]
+    }, {
+      "name": "task-3",
+      "command": "echo 'Hello World!' > /tmp/file1",
+      "requires": ["task-1"]
+    }, {
+      "name": "task-4",
+      "command": "rm /tmp/file1",
+      "requires": ["task-2", "task-3"]
+    }]
+  }
+  """
 
-    def job_fixture(attrs \\ %{}) do
-      {:ok, job} =
-        attrs
-        |> Enum.into(@valid_attrs)
-        |> TaskScheduler.create_job()
+  @with_cycle ~S"""
+    {
+    "tasks": [{
+      "name": "task-1",
+      "command": "touch /tmp/file1"
+    }, {
+      "name": "task-2",
+      "command": "cat /tmp/file1",
+      "requires": ["task-3"]
+    }, {
+      "name": "task-3",
+      "command": "echo 'Hello World!' > /tmp/file1",
+      "requires": ["task-1", "task-4"]
+    }, {
+      "name": "task-4",
+      "command": "rm /tmp/file1",
+      "requires": ["task-2", "task-3"]
+    }]
+  }
+  """
 
-      job
-    end
+  @unknown_requirements ~S"""
+    {
+    "tasks": [{
+      "name": "task-1",
+      "command": "touch /tmp/file1"
+    }, {
+      "name": "task-2",
+      "command": "cat /tmp/file1",
+      "requires": ["task-3", "task-7"]
+    }, {
+      "name": "task-3",
+      "command": "echo 'Hello World!' > /tmp/file1",
+      "requires": ["task-1"]
+    }, {
+      "name": "task-4",
+      "command": "rm /tmp/file1",
+      "requires": ["task-2", "task-3"]
+    }]
+  }
+  """
 
-    test "list_jobs/0 returns all jobs" do
-      job = job_fixture()
-      assert TaskScheduler.list_jobs() == [job]
-    end
+  @duplicate_requirements ~S"""
+    {
+    "tasks": [{
+      "name": "task-1",
+      "command": "touch /tmp/file1"
+    }, {
+      "name": "task-2",
+      "command": "cat /tmp/file1",
+      "requires": ["task-3"]
+    }, {
+      "name": "task-3",
+      "command": "echo 'Hello World!' > /tmp/file1",
+      "requires": ["task-1"]
+    }, {
+      "name": "task-4",
+      "command": "rm /tmp/file1",
+      "requires": ["task-2", "task-3", "task-3"]
+    }]
+  }
+  """
 
-    test "get_job!/1 returns the job with given id" do
-      job = job_fixture()
-      assert TaskScheduler.get_job!(job.id) == job
-    end
+  @duplicate_task ~S"""
+    {
+    "tasks": [{
+      "name": "task-1",
+      "command": "touch /tmp/file1"
+    }, {
+      "name": "task-2",
+      "command": "cat /tmp/file1",
+      "requires": ["task-3"]
+    }, {
+      "name": "task-3",
+      "command": "echo 'Hello World!' > /tmp/file1",
+      "requires": ["task-1"]
+    }, {
+      "name": "task-2",
+      "command": "dup",
+      "requires": ["task-1"]
+    }, {
+      "name": "task-4",
+      "command": "rm /tmp/file1",
+      "requires": ["task-2", "task-3"]
+    }]
+  }
+  """
 
-    test "create_job/1 with valid data creates a job" do
-      assert {:ok, %Job{} = job} = TaskScheduler.create_job(@valid_attrs)
-    end
+  def build_tasks(input) do
+    input
+    |> Jason.decode!(keys: :atoms)
+    |> Access.get(:tasks)
+    |> Enum.map(&struct!(Task, &1))
+  end
 
-    test "create_job/1 with invalid data returns error changeset" do
-      assert {:error, %Ecto.Changeset{}} = TaskScheduler.create_job(@invalid_attrs)
-    end
+  @doc """
+  check whether the tasks in the ordered list honour the requirements
+  """
+  def right_order(ordered_list, input) do
+    Enum.each(input, fn %Task{requires: requires, name: name} ->
+      pos = Enum.find_index(ordered_list, &(&1.name == name))
 
-    test "update_job/2 with valid data updates the job" do
-      job = job_fixture()
-      assert {:ok, %Job{} = job} = TaskScheduler.update_job(job, @update_attrs)
-    end
+      Enum.each(requires, fn req ->
+        assert Enum.find_index(ordered_list, &(&1.name == req)) <
+                 pos
+      end)
+    end)
+  end
 
-    test "update_job/2 with invalid data returns error changeset" do
-      job = job_fixture()
-      assert {:error, %Ecto.Changeset{}} = TaskScheduler.update_job(job, @invalid_attrs)
-      assert job == TaskScheduler.get_job!(job.id)
-    end
+  setup do
+    [
+      simple_input: build_tasks(@simple_input),
+      with_cycle: build_tasks(@with_cycle),
+      unknown_requirements: build_tasks(@unknown_requirements),
+      duplicate_requirements: build_tasks(@duplicate_requirements),
+      duplicate_task: build_tasks(@duplicate_task)
+    ]
+  end
 
-    test "delete_job/1 deletes the job" do
-      job = job_fixture()
-      assert {:ok, %Job{}} = TaskScheduler.delete_job(job)
-      assert_raise Ecto.NoResultsError, fn -> TaskScheduler.get_job!(job.id) end
-    end
+  test "good input", %{simple_input: simple_input} do
+    right_order(TaskScheduler.compute_schedule(simple_input), simple_input)
+  end
 
-    test "change_job/1 returns a job changeset" do
-      job = job_fixture()
-      assert %Ecto.Changeset{} = TaskScheduler.change_job(job)
-    end
+  test "with cycle", %{with_cycle: with_cycle} do
+    assert_raise(Error, "the task definition contains a cycle", fn ->
+      TaskScheduler.compute_schedule(with_cycle)
+    end)
+  end
+
+  test "with unknown requirements", %{unknown_requirements: unknown_requirements} do
+    assert_raise(Error, "some tasks are required but not defined", fn ->
+      TaskScheduler.compute_schedule(unknown_requirements)
+    end)
+  end
+
+  test "with duplicate requirements", %{duplicate_requirements: duplicate_requirements} do
+    assert_raise(Error, "task task-4 has duplicate requirements", fn ->
+      TaskScheduler.compute_schedule(duplicate_requirements)
+    end)
+  end
+
+  test "with duplicate task", %{duplicate_task: duplicate_task} do
+    assert_raise(Error, "task task-2 appears more than one", fn ->
+      TaskScheduler.compute_schedule(duplicate_task)
+    end)
   end
 end

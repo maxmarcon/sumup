@@ -13,9 +13,15 @@ defmodule TaskService.TaskScheduler do
   end
 
   defp check_vailidty(graph) do
-    if !is_valid?(graph) do
-      raise Error, message: "some tasks are required but not defined"
-    end
+    Enum.each(Map.values(graph), fn
+      %Node{task: task} when is_nil(task) ->
+        raise Error, message: "some tasks are required but not defined"
+
+      %Node{task: %Task{name: name, requires: requires}} ->
+        if length(Enum.uniq(requires)) != length(requires) do
+          raise Error, message: "task #{name} has duplicate requirements"
+        end
+    end)
 
     graph
   end
@@ -26,21 +32,17 @@ defmodule TaskService.TaskScheduler do
 
   defp build_graph(tasks) do
     Enum.reduce(tasks, %{}, fn %Task{name: name, requires: requires} = task, graph ->
-      if length(Enum.uniq(requires)) != length(requires) do
-        raise Error, message: "task #{name} has duplicate requirements"
-      end
-
       graph =
         Map.update(
           graph,
           name,
-          %Node{task: task, blocked_by_cnt: length(task.requires)},
+          %Node{task: task, blocked_by: length(task.requires)},
           fn
             %Node{task: task} when not is_nil(task) ->
               raise Error, message: "task #{name} appears more than one"
 
             node ->
-              %{node | task: task, blocked_by_cnt: length(task.requires)}
+              %{node | task: task, blocked_by: length(task.requires)}
           end
         )
 
@@ -53,15 +55,11 @@ defmodule TaskService.TaskScheduler do
     end)
   end
 
-  defp is_valid?(graph) do
-    Enum.all?(Map.values(graph), fn %Node{task: task} -> !is_nil(task) end)
-  end
-
   defp topological_sort(graph) do
     unblocked =
       graph
       |> Enum.filter(fn
-        {_, %Node{blocked_by_cnt: 0}} -> true
+        {_, %Node{blocked_by: 0}} -> true
         {_, _} -> false
       end)
       |> Enum.map(fn {name, _} -> name end)
@@ -78,7 +76,7 @@ defmodule TaskService.TaskScheduler do
       |> Enum.to_list()
 
     if length(sort) != Enum.count(graph) do
-      raise Error, message: "the task list contains a cycle"
+      raise Error, message: "the task definition contains a cycle"
     end
 
     sort
@@ -89,12 +87,12 @@ defmodule TaskService.TaskScheduler do
 
     Enum.reduce(blocked, {graph, []}, fn node_name, {graph, new_unblocked} ->
       case Map.fetch!(graph, node_name) do
-        %Node{blocked_by_cnt: 1} ->
+        %Node{blocked_by: 1} ->
           {graph, [node_name | new_unblocked]}
 
         _ ->
-          {Map.update!(graph, node_name, fn %Node{blocked_by_cnt: blocked_by_cnt} = node ->
-             %{node | blocked_by_cnt: blocked_by_cnt - 1}
+          {Map.update!(graph, node_name, fn %Node{blocked_by: blocked_by} = node ->
+             %{node | blocked_by: blocked_by - 1}
            end), new_unblocked}
       end
     end)
