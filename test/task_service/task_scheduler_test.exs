@@ -114,6 +114,33 @@ defmodule TaskService.TaskSchedulerTest do
   }
   """
 
+  @complex_case ~S"""
+    {
+      "tasks": [{
+        "name": "5"
+      }, {
+        "name": "11",
+        "requires": ["5", "7"]
+      }, {
+        "name": "8",
+        "requires": ["7"]
+      }, {
+        "name": "7"
+      }, {
+        "name": "2",
+        "requires": ["11"]
+      }, {
+        "name": "9",
+        "requires": ["8", "11"]
+      }, {
+        "name": "3"
+      }, {
+        "name": "10",
+        "requires": ["3", "11"]
+      }]
+  }
+  """
+
   def build_tasks(input) do
     input
     |> Jason.decode!(keys: :atoms)
@@ -124,7 +151,7 @@ defmodule TaskService.TaskSchedulerTest do
   @doc """
   check whether the tasks in the ordered list honour the requirements
   """
-  def right_order(ordered_list, input) do
+  def check_order(ordered_list, input) do
     Enum.each(input, fn %Task{requires: requires, name: name} ->
       pos = Enum.find_index(ordered_list, &(&1.name == name))
 
@@ -141,12 +168,17 @@ defmodule TaskService.TaskSchedulerTest do
       with_cycle: build_tasks(@with_cycle),
       unknown_requirements: build_tasks(@unknown_requirements),
       duplicate_requirements: build_tasks(@duplicate_requirements),
-      duplicate_task: build_tasks(@duplicate_task)
+      duplicate_task: build_tasks(@duplicate_task),
+      complex_case: build_tasks(@complex_case)
     ]
   end
 
   test "good input", %{simple_input: simple_input} do
-    right_order(TaskScheduler.compute_schedule(simple_input), simple_input)
+    check_order(TaskScheduler.compute_schedule(simple_input), simple_input)
+  end
+
+  test "complex case", %{complex_case: complex_case} do
+    check_order(TaskScheduler.compute_schedule(complex_case), complex_case)
   end
 
   test "with cycle", %{with_cycle: with_cycle} do
