@@ -10,13 +10,24 @@ defmodule JobServiceWeb.ErrorView do
   # By default, Phoenix returns the status message from
   # the template name. For example, "404.json" becomes
   # "Not Found".
-  def template_not_found(template, %{message: message}) do
+
+  def template_not_found(<<_status::binary-size(3), ".json">>, %{message: message}) do
     %{
       error: message
     }
   end
 
-  def template_not_found(template, _assigns) do
-    %{error: Phoenix.Controller.status_message_from_template(template)}
+  def template_not_found(<<_status::binary-size(3), ".json">> = template, _assigns) do
+    %{
+      error: Phoenix.Controller.status_message_from_template(template)
+    }
+  end
+
+  def template_not_found(<<_status::binary-size(3), ".txt">>, %{message: message}) do
+    "Error: #{message}"
+  end
+
+  def template_not_found(<<_status::binary-size(3), ".txt">> = template, _assigns) do
+    "Error: #{Phoenix.Controller.status_message_from_template(template)}"
   end
 end

@@ -7,7 +7,7 @@ defmodule JobServiceWeb.JobController do
 
   require Logger
 
-  @format_error "tasks may only contains the 'command' and 'name' keys"
+  @format_error "tasks may only contains the 'command', 'name', and 'requires' keys"
 
   action_fallback JobServiceWeb.FallbackController
 
@@ -18,7 +18,7 @@ defmodule JobServiceWeb.JobController do
         |> Enum.map(&to_atom_map/1)
         |> Enum.map(&struct!(Job, &1))
 
-      render(conn, "schedule.json", jobs: JobScheduler.compute_schedule(task_list))
+      render(conn, :schedule, jobs: JobScheduler.compute_schedule(task_list))
     rescue
       ArgumentError ->
         {:error, :bad_request, @format_error}
@@ -33,6 +33,10 @@ defmodule JobServiceWeb.JobController do
 
   def schedule(conn, %{"tasks" => _}) do
     {:error, :bad_request, "tasks must be a list"}
+  end
+
+  def schedule(_, _) do
+    {:error, :bad_request}
   end
 
   defp to_atom_map(task) when is_map(task) do

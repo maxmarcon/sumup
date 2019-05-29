@@ -15,7 +15,7 @@ defmodule JobService.JobScheduler do
 
   defp check_vailidty(graph) do
     if !is_valid?(graph) do
-      raise Error, message: "some nodes in the graph have no jobs!"
+      raise Error, message: "some tasks are required but not defined"
     end
 
     graph
@@ -27,15 +27,26 @@ defmodule JobService.JobScheduler do
 
   defp build_graph(jobs) do
     Enum.reduce(jobs, %{}, fn %Job{name: name, requires: requires} = job, graph ->
+      if length(Enum.uniq(requires)) != length(requires) do
+        raise Error, message: "task #{name} has duplicate requirements"
+      end
+
       graph =
         Map.update(
           graph,
           name,
           %Node{job: job, blocked_by_cnt: length(job.requires)},
-          fn node -> %{node | job: job, blocked_by_cnt: length(job.requires)} end
+          fn
+            %Node{job: job} when not is_nil(job) ->
+              raise Error, message: "task #{name} appears more than one"
+
+            node ->
+              %{node | job: job, blocked_by_cnt: length(job.requires)}
+          end
         )
 
-      Enum.reduce(requires, graph, fn requirement, graph ->
+      requires
+      |> Enum.reduce(graph, fn requirement, graph ->
         Map.update(graph, requirement, %Node{blocks: [name]}, fn %Node{blocks: blocks} = node ->
           %{node | blocks: [name | blocks]}
         end)
@@ -51,8 +62,8 @@ defmodule JobService.JobScheduler do
     unblocked =
       graph
       |> Enum.filter(fn
-        {name, %Node{blocked_by_cnt: 0}} -> true
-        {name, _} -> false
+        {_, %Node{blocked_by_cnt: 0}} -> true
+        {_, _} -> false
       end)
       |> Enum.map(fn {name, _} -> name end)
 
