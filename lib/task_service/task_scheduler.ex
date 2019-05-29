@@ -3,14 +3,13 @@ defmodule TaskService.TaskScheduler do
   """
   alias TaskService.Task
   alias TaskService.TaskScheduler.{Node, Error}
-  require Logger
 
   def compute_schedule(tasks) when is_list(tasks) do
     tasks
     |> build_graph
     |> check_vailidty
     |> topological_sort
-    |> hydrate_nodes
+    |> map_to_jobs
   end
 
   defp check_vailidty(graph) do
@@ -21,7 +20,7 @@ defmodule TaskService.TaskScheduler do
     graph
   end
 
-  defp hydrate_nodes(node_list) do
+  defp map_to_jobs(node_list) do
     Enum.map(node_list, fn %Node{task: task} -> task end)
   end
 

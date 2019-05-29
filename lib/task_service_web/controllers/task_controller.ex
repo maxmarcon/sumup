@@ -35,10 +35,6 @@ defmodule TaskServiceWeb.TaskController do
     {:error, :bad_request, "tasks must be a list"}
   end
 
-  def schedule(_, _) do
-    {:error, :bad_request}
-  end
-
   defp to_atom_map(task) when is_map(task) do
     Enum.reduce(task, %{}, fn {k, v}, res -> Map.put(res, String.to_atom(k), v) end)
   end
