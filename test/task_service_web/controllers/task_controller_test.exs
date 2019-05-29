@@ -1,19 +1,15 @@
-defmodule JobServiceWeb.JobControllerTest do
-  use JobServiceWeb.ConnCase
+defmodule TaskServiceWeb.JobControllerTest do
+  use TaskServiceWeb.ConnCase
 
-  alias JobService.JobScheduler
-  alias JobService.JobScheduler.Job
+  alias TaskService.TaskScheduler
+  alias TaskService.TaskScheduler.Job
 
-  @create_attrs %{
-
-  }
-  @update_attrs %{
-
-  }
+  @create_attrs %{}
+  @update_attrs %{}
   @invalid_attrs %{}
 
   def fixture(:job) do
-    {:ok, job} = JobScheduler.create_job(@create_attrs)
+    {:ok, job} = TaskScheduler.create_job(@create_attrs)
     job
   end
 

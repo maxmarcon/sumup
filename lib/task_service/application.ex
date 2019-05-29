@@ -1,4 +1,4 @@
-defmodule JobService.Application do
+defmodule TaskService.Application do
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   @moduledoc false
@@ -9,21 +9,21 @@ defmodule JobService.Application do
     # List all child processes to be supervised
     children = [
       # Start the endpoint when the application starts
-      JobServiceWeb.Endpoint
-      # Starts a worker by calling: JobService.Worker.start_link(arg)
-      # {JobService.Worker, arg},
+      TaskServiceWeb.Endpoint
+      # Starts a worker by calling: TaskService.Worker.start_link(arg)
+      # {TaskService.Worker, arg},
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: JobService.Supervisor]
+    opts = [strategy: :one_for_one, name: TaskService.Supervisor]
     Supervisor.start_link(children, opts)
   end
 
   # Tell Phoenix to update the endpoint configuration
   # whenever the application is updated.
   def config_change(changed, _new, removed) do
-    JobServiceWeb.Endpoint.config_change(changed, removed)
+    TaskServiceWeb.Endpoint.config_change(changed, removed)
     :ok
   end
 end

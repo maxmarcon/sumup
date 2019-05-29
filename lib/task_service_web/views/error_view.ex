@@ -1,5 +1,5 @@
-defmodule JobServiceWeb.ErrorView do
-  use JobServiceWeb, :view
+defmodule TaskServiceWeb.ErrorView do
+  use TaskServiceWeb, :view
 
   # If you want to customize a particular status code
   # for a certain format, you may uncomment below.

@@ -1,7 +1,7 @@
-defmodule JobServiceWeb.Endpoint do
-  use Phoenix.Endpoint, otp_app: :job_service
+defmodule TaskServiceWeb.Endpoint do
+  use Phoenix.Endpoint, otp_app: :task_service
 
-  socket "/socket", JobServiceWeb.UserSocket,
+  socket "/socket", TaskServiceWeb.UserSocket,
     websocket: true,
     longpoll: false
 
@@ -11,7 +11,7 @@ defmodule JobServiceWeb.Endpoint do
   # when deploying your static files in production.
   plug Plug.Static,
     at: "/",
-    from: :job_service,
+    from: :task_service,
     gzip: false,
     only: ~w(css fonts images js favicon.ico robots.txt)
 
@@ -37,8 +37,8 @@ defmodule JobServiceWeb.Endpoint do
   # Set :encryption_salt if you would also like to encrypt it.
   plug Plug.Session,
     store: :cookie,
-    key: "_job_service_key",
+    key: "_task_service_key",
     signing_salt: "JuyhkYZS"
 
-  plug JobServiceWeb.Router
+  plug TaskServiceWeb.Router
 end

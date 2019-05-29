@@ -8,11 +8,11 @@
 use Mix.Config
 
 # Configures the endpoint
-config :job_service, JobServiceWeb.Endpoint,
+config :task_service, TaskServiceWeb.Endpoint,
   url: [host: "localhost"],
   secret_key_base: "YMiKazQI1E1SgGw9N1SVy+yqn8SnK5ihJqTazj4HIv9S14RBX7vZ0kHh4wF3JV6i",
-  render_errors: [view: JobServiceWeb.ErrorView, accepts: ~w(json txt)],
-  pubsub: [name: JobService.PubSub, adapter: Phoenix.PubSub.PG2]
+  render_errors: [view: TaskServiceWeb.ErrorView, accepts: ~w(json txt)],
+  pubsub: [name: TaskService.PubSub, adapter: Phoenix.PubSub.PG2]
 
 # Configures Elixir's Logger
 config :logger, :console,

@@ -1,10 +1,10 @@
-defmodule JobServiceWeb.FallbackController do
+defmodule TaskServiceWeb.FallbackController do
   @moduledoc """
   Translates controller action results into valid `Plug.Conn` responses.
 
   See `Phoenix.Controller.action_fallback/1` for more details.
   """
-  use JobServiceWeb, :controller
+  use TaskServiceWeb, :controller
 
   def call(conn, :ok) do
     send_resp(conn, :no_content, "")
@@ -36,7 +36,7 @@ defmodule JobServiceWeb.FallbackController do
 
     conn
     |> put_status(code)
-    |> put_view(JobServiceWeb.ErrorView)
+    |> put_view(TaskServiceWeb.ErrorView)
     |> render(String.to_atom(Integer.to_string(code)), assigns)
   end
 end

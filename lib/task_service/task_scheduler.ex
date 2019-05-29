@@ -1,12 +1,12 @@
-defmodule JobService.JobScheduler do
+defmodule TaskService.TaskScheduler do
   @moduledoc """
   """
-  alias JobService.Job
-  alias JobService.JobScheduler.{Node, Error}
+  alias TaskService.Task
+  alias TaskService.TaskScheduler.{Node, Error}
   require Logger
 
-  def compute_schedule(jobs) when is_list(jobs) do
-    jobs
+  def compute_schedule(tasks) when is_list(tasks) do
+    tasks
     |> build_graph
     |> check_vailidty
     |> topological_sort
@@ -22,11 +22,11 @@ defmodule JobService.JobScheduler do
   end
 
   defp hydrate_nodes(node_list) do
-    Enum.map(node_list, fn %Node{job: job} -> job end)
+    Enum.map(node_list, fn %Node{task: task} -> task end)
   end
 
-  defp build_graph(jobs) do
-    Enum.reduce(jobs, %{}, fn %Job{name: name, requires: requires} = job, graph ->
+  defp build_graph(tasks) do
+    Enum.reduce(tasks, %{}, fn %Task{name: name, requires: requires} = task, graph ->
       if length(Enum.uniq(requires)) != length(requires) do
         raise Error, message: "task #{name} has duplicate requirements"
       end
@@ -35,13 +35,13 @@ defmodule JobService.JobScheduler do
         Map.update(
           graph,
           name,
-          %Node{job: job, blocked_by_cnt: length(job.requires)},
+          %Node{task: task, blocked_by_cnt: length(task.requires)},
           fn
-            %Node{job: job} when not is_nil(job) ->
+            %Node{task: task} when not is_nil(task) ->
               raise Error, message: "task #{name} appears more than one"
 
             node ->
-              %{node | job: job, blocked_by_cnt: length(job.requires)}
+              %{node | task: task, blocked_by_cnt: length(task.requires)}
           end
         )
 
@@ -55,7 +55,7 @@ defmodule JobService.JobScheduler do
   end
 
   defp is_valid?(graph) do
-    Enum.all?(Map.values(graph), fn %Node{job: job} -> !is_nil(job) end)
+    Enum.all?(Map.values(graph), fn %Node{task: task} -> !is_nil(task) end)
   end
 
   defp topological_sort(graph) do

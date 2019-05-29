@@ -1,9 +1,9 @@
-defmodule JobService.MixProject do
+defmodule TaskService.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :job_service,
+      app: :task_service,
       version: "0.1.0",
       elixir: "~> 1.5",
       elixirc_paths: elixirc_paths(Mix.env()),
@@ -18,7 +18,7 @@ defmodule JobService.MixProject do
   # Type `mix help compile.app` for more information.
   def application do
     [
-      mod: {JobService.Application, []},
+      mod: {TaskService.Application, []},
       extra_applications: [:logger, :runtime_tools]
     ]
   end

@@ -1,12 +1,12 @@
-defmodule JobServiceWeb do
+defmodule TaskServiceWeb do
   @moduledoc """
   The entrypoint for defining your web interface, such
   as controllers, views, channels and so on.
 
   This can be used in your application as:
 
-      use JobServiceWeb, :controller
-      use JobServiceWeb, :view
+      use TaskServiceWeb, :controller
+      use TaskServiceWeb, :view
 
   The definitions below will be executed for every view,
   controller, etc, so keep them short and clean, focused
@@ -19,26 +19,26 @@ defmodule JobServiceWeb do
 
   def controller do
     quote do
-      use Phoenix.Controller, namespace: JobServiceWeb
+      use Phoenix.Controller, namespace: TaskServiceWeb
 
       import Plug.Conn
-      import JobServiceWeb.Gettext
-      alias JobServiceWeb.Router.Helpers, as: Routes
+      import TaskServiceWeb.Gettext
+      alias TaskServiceWeb.Router.Helpers, as: Routes
     end
   end
 
   def view do
     quote do
       use Phoenix.View,
-        root: "lib/job_service_web/templates",
-        namespace: JobServiceWeb
+        root: "lib/task_service_web/templates",
+        namespace: TaskServiceWeb
 
       # Import convenience functions from controllers
       import Phoenix.Controller, only: [get_flash: 1, get_flash: 2, view_module: 1]
 
-      import JobServiceWeb.ErrorHelpers
-      import JobServiceWeb.Gettext
-      alias JobServiceWeb.Router.Helpers, as: Routes
+      import TaskServiceWeb.ErrorHelpers
+      import TaskServiceWeb.Gettext
+      alias TaskServiceWeb.Router.Helpers, as: Routes
     end
   end
 
@@ -53,7 +53,7 @@ defmodule JobServiceWeb do
   def channel do
     quote do
       use Phoenix.Channel
-      import JobServiceWeb.Gettext
+      import TaskServiceWeb.Gettext
     end
   end
 

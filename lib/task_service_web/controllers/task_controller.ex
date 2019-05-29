@@ -1,24 +1,24 @@
-defmodule JobServiceWeb.JobController do
-  use JobServiceWeb, :controller
+defmodule TaskServiceWeb.TaskController do
+  use TaskServiceWeb, :controller
 
-  alias JobService.JobScheduler
-  alias JobService.JobScheduler.Error, as: SchedulerError
-  alias JobService.Job
+  alias TaskService.TaskScheduler
+  alias TaskService.TaskScheduler.Error, as: SchedulerError
+  alias TaskService.Task
 
   require Logger
 
   @format_error "tasks may only contains the 'command', 'name', and 'requires' keys"
 
-  action_fallback JobServiceWeb.FallbackController
+  action_fallback TaskServiceWeb.FallbackController
 
   def schedule(conn, %{"tasks" => tasks}) when is_list(tasks) do
     try do
       task_list =
         tasks
         |> Enum.map(&to_atom_map/1)
-        |> Enum.map(&struct!(Job, &1))
+        |> Enum.map(&struct!(Task, &1))
 
-      render(conn, :schedule, jobs: JobScheduler.compute_schedule(task_list))
+      render(conn, :schedule, tasks: TaskScheduler.compute_schedule(task_list))
     rescue
       ArgumentError ->
         {:error, :bad_request, @format_error}
