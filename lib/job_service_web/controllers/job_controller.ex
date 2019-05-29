@@ -2,6 +2,7 @@ defmodule JobServiceWeb.JobController do
   use JobServiceWeb, :controller
 
   alias JobService.JobScheduler
+  alias JobService.JobScheduler.Error, as: SchedulerError
   alias JobService.Job
 
   require Logger
@@ -24,6 +25,9 @@ defmodule JobServiceWeb.JobController do
 
       KeyError ->
         {:error, :bad_request, @format_error}
+
+      e in SchedulerError ->
+        {:error, :bad_request, e.message}
     end
   end
 

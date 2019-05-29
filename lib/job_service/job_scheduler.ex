@@ -1,7 +1,8 @@
 defmodule JobService.JobScheduler do
   @moduledoc """
   """
-  alias JobService.{Job, Node}
+  alias JobService.Job
+  alias JobService.JobScheduler.{Node, Error}
   require Logger
 
   def compute_schedule(jobs) when is_list(jobs) do
@@ -14,7 +15,7 @@ defmodule JobService.JobScheduler do
 
   defp check_vailidty(graph) do
     if !is_valid?(graph) do
-      raise "some nodes in the graph have no jobs!"
+      raise Error, message: "some nodes in the graph have no jobs!"
     end
 
     graph
@@ -55,15 +56,22 @@ defmodule JobService.JobScheduler do
       end)
       |> Enum.map(fn {name, _} -> name end)
 
-    Stream.unfold({graph, unblocked}, fn
-      {_, []} ->
-        nil
+    sort =
+      Stream.unfold({graph, unblocked}, fn
+        {_, []} ->
+          nil
 
-      {graph, [unblocked_node | other_unblocked]} ->
-        {graph, new_unblocked} = unblock_dependent_nodes(graph, unblocked_node)
-        {Map.fetch!(graph, unblocked_node), {graph, new_unblocked ++ other_unblocked}}
-    end)
-    |> Enum.to_list()
+        {graph, [unblocked_node | other_unblocked]} ->
+          {graph, new_unblocked} = unblock_dependent_nodes(graph, unblocked_node)
+          {Map.fetch!(graph, unblocked_node), {graph, new_unblocked ++ other_unblocked}}
+      end)
+      |> Enum.to_list()
+
+    if length(sort) != Enum.count(graph) do
+      raise Error, message: "the task list contains a cycle"
+    end
+
+    sort
   end
 
   defp unblock_dependent_nodes(graph, unblocked_node) do

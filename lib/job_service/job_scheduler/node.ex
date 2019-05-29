@@ -1,4 +1,4 @@
-defmodule JobService.Node do
+defmodule JobService.JobScheduler.Node do
   defstruct blocks: [], job: nil, blocked_by_cnt: 0
 
   alias __MODULE__
