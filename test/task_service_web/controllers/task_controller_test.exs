@@ -105,7 +105,8 @@ defmodule TaskServiceWeb.JobControllerTest do
 
       list = json_response(conn, 200)
 
-      assert Enum.sort(Enum.map(list, & &1["name"])) == ["task-1", "task-2", "task-3", "task-4"]
+      # for this input there is only one valid order
+      assert Enum.map(list, & &1["name"]) == ["task-1", "task-3", "task-2", "task-4"]
     end
 
     test "when TaskScheduler raises, returns a 400", %{conn: conn} do
