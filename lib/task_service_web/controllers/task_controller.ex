@@ -5,8 +5,6 @@ defmodule TaskServiceWeb.TaskController do
   alias TaskService.TaskScheduler.Error, as: SchedulerError
   alias TaskService.Task
 
-  require Logger
-
   @format_error "tasks may only contains the 'command', 'name', and 'requires' keys"
 
   action_fallback TaskServiceWeb.FallbackController

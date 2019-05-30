@@ -149,15 +149,17 @@ defmodule TaskService.TaskSchedulerTest do
   end
 
   @doc """
-  check whether the tasks in the ordered list honour the requirements
+  check whether the order of tasks in the list honours the requirements
   """
   def check_order(ordered_list, input) do
     Enum.each(input, fn %Task{requires: requires, name: name} ->
-      pos = Enum.find_index(ordered_list, &(&1.name == name))
+      task_pos = Enum.find_index(ordered_list, &(&1.name == name))
+      refute is_nil(task_pos)
 
       Enum.each(requires, fn req ->
-        assert Enum.find_index(ordered_list, &(&1.name == req)) <
-                 pos
+        req_pos = Enum.find_index(ordered_list, &(&1.name == req))
+        refute is_nil(req_pos)
+        assert req_pos < task_pos
       end)
     end)
   end
