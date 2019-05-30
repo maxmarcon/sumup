@@ -1,5 +1,8 @@
 defmodule TaskService.TaskScheduler do
   @moduledoc """
+  This module exposed a `compute_schedule` function that receives a list of tasks and builds
+  a graph where there is an edge `A -> B` if and only if task B requires task A.
+  It then computes a topological sorting of the nodes in the graph
   """
   alias TaskService.Task
   alias TaskService.TaskScheduler.{Node, Error}
@@ -32,6 +35,9 @@ defmodule TaskService.TaskScheduler do
 
   defp build_graph(tasks) do
     Enum.reduce(tasks, %{}, fn %Task{name: name, requires: requires} = task, graph ->
+      # add the task `name` to the graph. Note that a node for `name` might already exist
+      # if `name` was a requirement for a previously encountered task
+
       graph =
         Map.update(
           graph,
@@ -46,6 +52,7 @@ defmodule TaskService.TaskScheduler do
           end
         )
 
+      # for each task rquired by `name`, add `name` to the `blocks` list in the corresponding node
       requires
       |> Enum.reduce(graph, fn requirement, graph ->
         Map.update(graph, requirement, %Node{blocks: [name]}, fn %Node{blocks: blocks} = node ->
@@ -56,6 +63,10 @@ defmodule TaskService.TaskScheduler do
   end
 
   defp topological_sort(graph) do
+    # implementation of Kahn's algorithm
+
+    # build the initial list of tasks that are not blocked by any other task and can run
+    # immediately
     unblocked =
       graph
       |> Enum.filter(fn
@@ -66,9 +77,13 @@ defmodule TaskService.TaskScheduler do
 
     sort =
       Stream.unfold({graph, unblocked}, fn
+        # the list of unblocked tasks is empty. We either found a topological sort or
+        # a topological sort does not exist (i.e. the graph has a cycle). In either case, we are done
         {_, []} ->
           nil
 
+        # there is at least one unblocked task. We call unblock_dependent_nodes on the tasks' node
+        # the unblocked task will be the next task in the topological sort
         {graph, [unblocked_node | other_unblocked]} ->
           {graph, new_unblocked} = unblock_dependent_nodes(graph, unblocked_node)
           {Map.fetch!(graph, unblocked_node), {graph, new_unblocked ++ other_unblocked}}
@@ -85,11 +100,16 @@ defmodule TaskService.TaskScheduler do
   defp unblock_dependent_nodes(graph, unblocked_node) do
     %Node{blocks: blocked} = Map.fetch!(graph, unblocked_node)
 
+    # we visit all the nodes that are currently blocked by `unblocked_node` and maintain
+    # a list of new nodes that have become unblocked
     Enum.reduce(blocked, {graph, []}, fn node_name, {graph, new_unblocked} ->
       case Map.fetch!(graph, node_name) do
+        # `unblocked_node` was the last task blocking `node_name`: it is therefore now unblocked,
+        # and we add it to the list fo unblocked nodes
         %Node{blocked_by: 1} ->
           {graph, [node_name | new_unblocked]}
 
+        # `node_name` is no longer blocked by unblocked_node. We reduce its blocked_by count by 1
         _ ->
           {Map.update!(graph, node_name, fn %Node{blocked_by: blocked_by} = node ->
              %{node | blocked_by: blocked_by - 1}

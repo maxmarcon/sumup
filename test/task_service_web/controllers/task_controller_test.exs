@@ -22,6 +22,27 @@ defmodule TaskServiceWeb.JobControllerTest do
   }
   """
 
+  @missing_name ~S"""
+    {
+    "tasks": [{
+      "name": "",
+      "command": "touch /tmp/file1"
+    }, {
+      "name": "task-2",
+      "command": "cat /tmp/file1",
+      "requires": ["task-3"]
+    }, {
+      "name": "task-3",
+      "command": "echo 'Hello World!' > /tmp/file1",
+      "requires": ["task-1"]
+    }, {
+      "name": "task-4",
+      "command": "rm /tmp/file1",
+      "requires": ["task-2", "task-3"]
+    }]
+  }
+  """
+
   @invalid_keys ~S"""
     {
     "tasks": [{
@@ -95,12 +116,20 @@ defmodule TaskServiceWeb.JobControllerTest do
       assert error == "the task definition contains a cycle"
     end
 
-    test "ivalid input returns a 400", %{conn: conn} do
+    test "invalid input returns a 400", %{conn: conn} do
       conn = post(conn, Routes.task_path(conn, :schedule), @invalid_keys)
 
       error = json_response(conn, 400)["error"]
 
       assert error == "tasks may only contains the 'command', 'name', and 'requires' keys"
+    end
+
+    test "different invalid input returns a 400", %{conn: conn} do
+      conn = post(conn, Routes.task_path(conn, :schedule), @missing_name)
+
+      error = json_response(conn, 400)["error"]
+
+      assert error == "some tasks don't have a name"
     end
 
     test "input without a list returns a 400", %{conn: conn} do
@@ -141,12 +170,20 @@ defmodule TaskServiceWeb.JobControllerTest do
       assert error == "Error: the task definition contains a cycle"
     end
 
-    test "ivalid input returns a 400", %{conn: conn} do
+    test "invalid input returns a 400", %{conn: conn} do
       conn = post(conn, Routes.task_path(conn, :schedule), @invalid_keys)
 
       error = text_response(conn, 400)
 
       assert error == "Error: tasks may only contains the 'command', 'name', and 'requires' keys"
+    end
+
+    test "different invalid input returns a 400", %{conn: conn} do
+      conn = post(conn, Routes.task_path(conn, :schedule), @missing_name)
+
+      error = text_response(conn, 400)
+
+      assert error == "Error: some tasks don't have a name"
     end
 
     test "input without a list returns a 400", %{conn: conn} do

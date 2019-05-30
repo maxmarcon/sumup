@@ -7,6 +7,8 @@ defmodule TaskServiceWeb.TaskController do
 
   @format_error "tasks may only contains the 'command', 'name', and 'requires' keys"
 
+  @missing_name_error "some tasks don't have a name"
+
   action_fallback TaskServiceWeb.FallbackController
 
   def schedule(conn, %{"tasks" => tasks}) when is_list(tasks) do
@@ -16,7 +18,15 @@ defmodule TaskServiceWeb.TaskController do
         |> Enum.map(&to_atom_map/1)
         |> Enum.map(&struct!(Task, &1))
 
-      render(conn, :schedule, tasks: TaskScheduler.compute_schedule(task_list))
+      if Enum.any?(task_list, fn
+           %Task{name: nil} -> true
+           %Task{name: name} when is_binary(name) and byte_size(name) == 0 -> true
+           _ -> false
+         end) do
+        {:error, :bad_request, @missing_name_error}
+      else
+        render(conn, :schedule, tasks: TaskScheduler.compute_schedule(task_list))
+      end
     rescue
       ArgumentError ->
         {:error, :bad_request, @format_error}
@@ -29,7 +39,7 @@ defmodule TaskServiceWeb.TaskController do
     end
   end
 
-  def schedule(conn, %{"tasks" => _}) do
+  def schedule(_conn, %{"tasks" => _}) do
     {:error, :bad_request, "tasks must be a list"}
   end
 
